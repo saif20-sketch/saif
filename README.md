@@ -1,421 +1,120 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام الفهرسة الطبية - جامعة السلطان قابوس</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+import streamlit as st
+import openai
+import json
+
+# --- إعدادات الصفحة ---
+st.set_page_config(
+    page_title="نظام الفهرسة الطبية الذكي | SQU",
+    page_icon="🏥",
+    layout="centered"
+)
+
+# --- تصميم الواجهة (CSS) ---
+st.markdown("""
     <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #3498db;
-            --success: #27ae60;
-            --warning: #f39c12;
-            --danger: #e74c3c;
-            --accent: #1abc9c;
-            --light: #ecf0f1;
-            --dark: #2c3e50;
-            --gray: #95a5a6;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        header {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-
-        .logo {
-            margin-bottom: 20px;
-        }
-
-        .logo i {
-            font-size: 60px;
-            color: var(--accent);
-            margin-bottom: 15px;
-        }
-
-        .logo h1 {
-            font-size: 36px;
-            color: var(--primary);
-            margin-bottom: 10px;
-        }
-
-        .logo h2 {
-            color: var(--gray);
-            font-weight: normal;
-            font-size: 18px;
-        }
-
-        .connection-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: linear-gradient(135deg, var(--success), #229954);
-            color: white;
-            padding: 12px 25px;
-            border-radius: 25px;
-            font-weight: bold;
-            margin-top: 15px;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 40px;
-        }
-
-        @media (max-width: 1100px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-        }
-
-        .card-title {
-            color: var(--primary);
-            font-size: 24px;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 3px solid var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .form-group {
-            margin-bottom: 25px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: 600;
-            color: var(--dark);
-            font-size: 16px;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e6ed;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: all 0.3s;
-            background: white;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            border-color: var(--secondary);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-        }
-
-        .btn {
-            padding: 16px 30px;
-            border: none;
-            border-radius: 10px;
-            font-size: 17px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            transition: all 0.3s;
-            min-width: 160px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--secondary), #2980b9);
-            color: white;
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, var(--success), #229954);
-            color: white;
-            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
-        }
-
-        .btn-success:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(39, 174, 96, 0.4);
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
-            flex-wrap: wrap;
-        }
-
-        .alert {
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            animation: slideDown 0.5s ease;
-            border-left: 5px solid;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border-left-color: #28a745;
-        }
-
-        .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border-left-color: #17a2b8;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border-left-color: #dc3545;
-        }
-
-        footer {
-            text-align: center;
-            padding: 30px;
-            color: white;
-            font-size: 16px;
-            margin-top: 40px;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 10000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: white;
-            width: 90%;
-            max-width: 900px;
-            border-radius: 25px;
-            overflow: hidden;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, var(--primary), #1a2530);
-            color: white;
-            padding: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .close-modal {
-            font-size: 36px;
-            cursor: pointer;
-        }
-
-        .modal-body {
-            padding: 30px;
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-
-        .marc-display {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 25px;
-            border-radius: 10px;
-            font-family: 'Courier New', monospace;
-            white-space: pre-wrap;
-            font-size: 14px;
-            line-height: 1.8;
-            max-height: 500px;
-            overflow-y: auto;
-        }
+    .main { background-color: #f8f9fa; }
+    .stButton>button {
+        width: 100%;
+        background-color: #004a99;
+        color: white;
+        border-radius: 10px;
+        height: 3em;
+        font-weight: bold;
+    }
+    .header-box {
+        background-color: #004a99;
+        padding: 20px;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .result-card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        border-right: 5px solid #004a99;
+        margin-top: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
     </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <div class="logo">
-                <i class="fas fa-book-medical"></i>
-                <h1>نظام الفهرسة الذكي للمكتبة الطبية</h1>
-                <h2>جامعة السلطان قابوس - كلية الطب</h2>
-                <div class="connection-status">
-                    <i class="fas fa-cloud"></i>
-                    النظام مستضاف على الإنترنت
-                </div>
-            </div>
-        </header>
+    """, unsafe_allow_html=True)
 
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle"></i>
-            <div>
-                <strong>مرحباً بك في نظام الفهرسة المتصل!</strong><br>
-                أدخل عنوان الكتاب أو ISBN للبحث في قواعد البيانات الطبية.
-            </div>
-        </div>
-
-        <main class="main-content">
-            <section class="card">
-                <h3 class="card-title">
-                    <i class="fas fa-search"></i>
-                    البحث والفهرسة
-                </h3>
-
-                <div class="form-group">
-                    <label for="searchQuery">
-                        <i class="fas fa-book"></i>
-                        ابحث عن كتاب طبي
-                    </label>
-                    <input type="text" id="searchQuery" 
-                           placeholder="أدخل العنوان، المؤلف، أو ISBN..."
-                           required>
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" id="searchBtn" class="btn btn-success">
-                        <i class="fas fa-search"></i>
-                        بحث سريع
-                    </button>
-                    <button type="button" id="indexBtn" class="btn btn-primary">
-                        <i class="fas fa-robot"></i>
-                        فهرسة ذكية
-                    </button>
-                </div>
-
-                <div id="resultsContainer" style="display: none; margin-top: 30px;">
-                    <!-- نتائج البحث تظهر هنا -->
-                </div>
-            </section>
-
-            <section class="card">
-                <h3 class="card-title">
-                    <i class="fas fa-database"></i>
-                    الكتب المفهرسة
-                </h3>
-
-                <div id="booksList">
-                    <p style="color: var(--gray); text-align: center; padding: 20px;">
-                        <i class="fas fa-book-open" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
-                        ابحث عن كتاب لبدء الفهرسة
-                    </p>
-                </div>
-            </section>
-        </main>
-
-        <footer>
-            <p>نظام الفهرسة الذكي للمكتبة الطبية - جامعة السلطان قابوس</p>
-            <p>مستضاف على GitHub Pages | الإصدار 1.0</p>
-        </footer>
+# --- الهيدر ---
+st.markdown("""
+    <div class="header-box">
+        <h1 style="margin:0;">المكتبة الطبية - جامعة السلطان قابوس</h1>
+        <p style="margin:5px 0 0 0;">نظام الفهرسة الآلي بالذكاء الاصطناعي (MARC 21 / MeSH)</p>
     </div>
+    """, unsafe_allow_html=True)
 
-    <script>
-        // كود JavaScript الأساسي
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('نظام الفهرسة الطبية جاهز للاستخدام');
+# --- القائمة الجانبية للإعدادات ---
+with st.sidebar:
+    st.image("https://www.squ.edu.om/Portals/0/SQU-Logo.png", width=150)
+    st.title("الإعدادات")
+    api_key = st.text_input("أدخل مفتاح OpenAI API:", type="password")
+    st.info("هذا النظام يستخدم GPT-4 لتحليل الكتاب واستخراج رؤوس الموضوعات الطبية بدقة.")
+
+# --- واجهة الإدخال الرئيسية ---
+st.subheader("🔍 فهرسة كتاب جديد")
+isbn_input = st.text_input("أدخل رقم ISBN (بدون فواصل):", placeholder="مثال: 9780323596299")
+
+if st.button("توليد بيانات الفهرسة"):
+    if not api_key:
+        st.error("⚠️ من فضلك أدخل مفتاح API في القائمة الجانبية.")
+    elif not isbn_input:
+        st.warning("⚠️ يرجى إدخال رقم ISBN للبدء.")
+    else:
+        try:
+            client = openai.OpenAI(api_key=api_key)
             
-            document.getElementById('searchBtn').addEventListener('click', function() {
-                const query = document.getElementById('searchQuery').value;
-                if (query) {
-                    simulateSearch(query);
-                }
-            });
-            
-            document.getElementById('indexBtn').addEventListener('click', function() {
-                const query = document.getElementById('searchQuery').value;
-                if (query) {
-                    simulateIndexing(query);
-                }
-            });
-        });
+            with st.spinner('جاري التواصل مع محرك الذكاء الاصطناعي...'):
+                prompt = f"""
+                You are a professional medical cataloger at Sultan Qaboos University. 
+                Generate a catalog record for ISBN: {isbn_input}.
+                Requirements:
+                1. Subject headings must be from MeSH (Medical Subject Headings).
+                2. Classification must be LCC (Library of Congress).
+                3. Include a Medical Cutter number.
+                4. Return the result strictly as a JSON object with keys: 
+                   "title", "author", "edition", "pub_year", "mesh", "lcc", "cutter", "marc_21_raw".
+                """
+                
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={ "type": "json_object" }
+                )
+                
+                res_data = json.loads(response.choices[0].message.content)
 
-        function simulateSearch(query) {
-            const results = document.getElementById('resultsContainer');
-            results.innerHTML = `
-                <div style="background: #f8f9fa; padding: 25px; border-radius: 15px;">
-                    <h4 style="color: var(--success); margin-bottom: 15px;">
-                        <i class="fas fa-check-circle"></i>
-                        تم العثور على نتائج لـ "${query}"
-                    </h4>
-                    <div style="display: grid; gap: 15px;">
-                        <div style="background: white; padding: 20px; border-radius: 10px; border: 1px solid #e0e6ed;">
-                            <strong>كتاب تجريبي في الطب الباطني</strong><br>
-                            <small style="color: var(--gray);">المؤلف: د. أحمد محمد | الناشر: دار الطب الحديث</small>
-                        </div>
-                    </div>
+                # --- عرض النتائج ---
+                st.balloons()
+                
+                st.markdown(f"""
+                <div class="result-card">
+                    <h3 style="color:#004a99;">{res_data['title']}</h3>
+                    <p><b>المؤلف:</b> {res_data['author']} | <b>الطبعة:</b> {res_data['edition']} | <b>السنة:</b> {res_data['pub_year']}</p>
+                    <hr>
+                    <p style="color:#2c3e50;"><b>رؤوس الموضوعات الطبية (MeSH):</b><br>{res_data['mesh']}</p>
+                    <p style="color:#d35400;"><b>تصنيف مكتبة الكونجرس (LCC):</b> {res_data['lcc']}</p>
+                    <p style="color:#d35400;"><b>رقم كتر (Cutter):</b> {res_data['cutter']}</p>
                 </div>
-            `;
-            results.style.display = 'block';
-        }
+                """, unsafe_allow_html=True)
 
-        function simulateIndexing(query) {
-            const results = document.getElementById('resultsContainer');
-            results.innerHTML = `
-                <div style="background: #e8f4fd; padding: 25px; border-radius: 15px; border: 2px solid #b3e0ff;">
-                    <h4 style="color: var(--primary); margin-bottom: 15px;">
-                        <i class="fas fa-robot"></i>
-                        تمت فهرسة "${query}" ذكياً
-                    </h4>
-                    <div style="background: white; padding: 20px; border-radius: 10px;">
-                        <p><strong>التصنيف:</strong> WB - الممارسة الطبية</p>
-                        <p><strong>رؤوس الموضوعات:</strong> طب الباطنة، التشخيص، العلاج</p>
-                        <p><strong>رقم MARC:</strong> 001-2024-001</p>
-                    </div>
-                    <button class="btn btn-success" style="margin-top: 15px;">
-                        <i class="fas fa-save"></i> حفظ في قاعدة البيانات
-                    </button>
-                </div>
-            `;
-            results.style.display = 'block';
-        }
-    </script>
-</body>
-</html>
+                with st.expander("عرض حقول MARC 21 (Raw Data)"):
+                    st.code(res_data['marc_21_raw'], language="text")
+                
+                st.download_button(
+                    label="تحميل البيانات كملف نصي",
+                    data=str(res_data),
+                    file_name=f"catalog_{isbn_input}.txt",
+                    mime="text/plain"
+                )
+
+        except Exception as e:
+            st.error(f"حدث خطأ أثناء المعالجة: {str(e)}")
+
+# --- التذييل ---
+st.markdown("<br><hr><p style='text-align:center; color:grey;'>نظام تجريبي للمكتبة الطبية - جامعة السلطان قابوس</p>", unsafe_allow_html=True)
